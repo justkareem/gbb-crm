@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports - Request Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div x-data="reportsApp()">
+        <div class="flex min-h-screen">
+            <!-- Sidebar -->
+            <div class="w-64 bg-white shadow-lg" :class="{ 'hidden': !sidebarOpen }" id="sidebar">
+                <div class="p-4 border-b">
+                    <div class="flex items-center gap-2">
+                        <img src="/static/images/Galaxy-New-Logo-scaled.png" alt="Galaxy Backbone" class="h-10 w-auto">
+                        <span class="font-semibold text-gray-800">Request Management System</span>
+                    </div>
+                </div>
+                <nav class="p-4">
+                    <div class="space-y-2">
+                        <div class="px-3 py-2 text-sm text-gray-600 border-b mb-2">
+                            Welcome, {{ session.full_name }}
+                        </div>
+                        <a href="/" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700">
+                            <i class="fas fa-home w-5"></i>
+                            <span>Dashboard</span>
+                        </a>
+                        <a href="/add-request" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700">
+                            <i class="fas fa-plus w-5"></i>
+                            <span>Add Request</span>
+                        </a>
+                        <a href="/requests" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700">
+                            <i class="fas fa-table w-5"></i>
+                            <span>Requests Table</span>
+                        </a>
+                        <a href="/reports" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-blue-50 text-blue-700">
+                            <i class="fas fa-chart-bar w-5"></i>
+                            <span>Reports</span>
+                        </a>
+                        <a href="/logout" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700 mt-4 border-t pt-4">
+                            <i class="fas fa-sign-out-alt w-5"></i>
+                            <span>Logout</span>
+                        </a>
+                    </div>
+                </nav>
+            </div>
+
+            <!-- Main Content -->
+            <div class="flex-1">
+                <!-- Header -->
+                <div class="bg-white shadow-sm border-b px-6 py-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden">
+                                <i class="fas fa-bars text-gray-600"></i>
+                            </button>
+                            <div>
+                                <h1 class="text-3xl font-bold text-gray-900">Reports</h1>
+                                <p class="text-gray-600">Analyze request performance and trends.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Content -->
+                <div class="p-6">
+                    <!-- Report Period Tabs -->
+                    <div class="bg-white rounded-xl shadow-sm border mb-6">
+                        <div class="border-b">
+                            <nav class="flex space-x-8 px-6">
+                                <button 
+                                    @click="activeTab = 'daily'; loadReportData()"
+                                    :class="activeTab === 'daily' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                                    class="py-4 px-1 border-b-2 font-medium text-sm transition-colors">
+                                    <i class="fas fa-calendar-day mr-2"></i>Daily Report
+                                </button>
+                                <button 
+                                    @click="activeTab = 'weekly'; loadReportData()"
+                                    :class="activeTab === 'weekly' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                                    class="py-4 px-1 border-b-2 font-medium text-sm transition-colors">
+                                    <i class="fas fa-calendar-week mr-2"></i>Weekly Report
+                                </button>
+                                <button 
+                                    @click="activeTab = 'monthly'; loadReportData()"
+                                    :class="activeTab === 'monthly' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                                    class="py-4 px-1 border-b-2 font-medium text-sm transition-colors">
+                                    <i class="fas fa-calendar-alt mr-2"></i>Monthly Report
+                                </button>
+                            </nav>
+                        </div>
+
+                        <!-- Date Selection -->
+                        <div class="p-4 border-b bg-gray-50">
+                            <div class="flex items-center gap-4">
+                                <div x-show="activeTab === 'daily'">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Select Date</label>
+                                    <input type="date" x-model="selectedDate" @change="loadReportData()" 
+                                           class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div x-show="activeTab === 'weekly'">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Select Week</label>
+                                    <input type="week" x-model="selectedWeek" @change="loadReportData()"
+                                           class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div x-show="activeTab === 'monthly'">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Select Month</label>
+                                    <input type="month" x-model="selectedMonth" @change="loadReportData()" 
+                                           class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div class="flex gap-2">
+                                    <button @click="loadReportData()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                        <i class="fas fa-refresh mr-2"></i>Refresh
+                                    </button>
+                                    
+                                    <!-- Export Dropdown -->
+                                    <div class="relative" x-data="{ showExportMenu: false }">
+                                        <button @click="showExportMenu = !showExportMenu" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center">
+                                            <i class="fas fa-download mr-2"></i>Export
+                                            <i class="fas fa-chevron-down ml-2 text-sm"></i>
+                                        </button>
+                                        
+                                        <div x-show="showExportMenu" @click.away="showExportMenu = false" 
+                                             class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50" x-cloak>
+                                            <div class="py-2">
+                                                <button @click="exportReport('pdf'); showExportMenu = false" 
+                                                        class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
+                                                    <i class="fas fa-file-pdf mr-2 text-red-600"></i>Export as PDF
+                                                </button>
+                                                <button @click="exportReport('excel'); showExportMenu = false" 
+                                                        class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
+                                                    <i class="fas fa-file-excel mr-2 text-green-600"></i>Export as Excel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Report Content -->
+                        <div class="p-6">
+                            <!-- Loading State -->
+                            <div x-show="loading" class="text-center py-8">
+                                <i class="fas fa-spinner fa-spin text-3xl text-blue-600 mb-4"></i>
+                                <p class="text-gray-600">Loading report data...</p>
+                            </div>
+
+                            <!-- Daily Report -->
+                            <div x-show="activeTab === 'daily' && !loading">
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                                    <!-- Key Metrics Cards -->
+                                    <div class="bg-blue-50 rounded-lg p-6">
+                                        <div class="flex items-center">
+                                            <div class="p-2 bg-blue-100 rounded-lg">
+                                                <i class="fas fa-plus text-blue-600"></i>
+                                            </div>
+                                            <div class="ml-4">
+                                                <p class="text-sm font-medium text-gray-600">Created Today</p>
+                                                <p class="text-2xl font-bold text-gray-900" x-text="reportData.daily?.created || 0"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bg-green-50 rounded-lg p-6">
+                                        <div class="flex items-center">
+                                            <div class="p-2 bg-green-100 rounded-lg">
+                                                <i class="fas fa-check text-green-600"></i>
+                                            </div>
+                                            <div class="ml-4">
+                                                <p class="text-sm font-medium text-gray-600">Completed Today</p>
+                                                <p class="text-2xl font-bold text-gray-900" x-text="reportData.daily?.completed || 0"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bg-yellow-50 rounded-lg p-6">
+                                        <div class="flex items-center">
+                                            <div class="p-2 bg-yellow-100 rounded-lg">
+                                                <i class="fas fa-clock text-yellow-600"></i>
+                                            </div>
+                                            <div class="ml-4">
+                                                <p class="text-sm font-medium text-gray-600">In Progress</p>
+                                                <p class="text-2xl font-bold text-gray-900" x-text="reportData.daily?.in_progress || 0"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bg-red-50 rounded-lg p-6">
+                                        <div class="flex items-center">
+                                            <div class="p-2 bg-red-100 rounded-lg">
+                                                <i class="fas fa-exclamation-triangle text-red-600"></i>
+                                            </div>
+                                            <div class="ml-4">
+                                                <p class="text-sm font-medium text-gray-600">Overdue</p>
+                                                <p class="text-2xl font-bold text-gray-900" x-text="reportData.daily?.overdue || 0"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Daily Details Table -->
+                                <div class="bg-white rounded-lg border">
+                                    <div class="px-6 py-4 border-b">
+                                        <h3 class="text-lg font-semibold text-gray-900">Daily Report Details</h3>
+                                    </div>
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full text-sm">
+                                            <thead class="bg-gray-50">
+                                                <tr>
+                                                    <th class="text-left p-3 font-medium text-gray-700">S/N</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Customer</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Description</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Service Type</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">BOQ Cost</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">BM</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Date Received</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Target</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Sent Out</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Duration</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Team Member</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Comment</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <template x-for="(request, index) in reportData.daily?.requests || []" :key="request.id">
+                                                    <tr class="border-b hover:bg-gray-50"
+                                                        :class="{
+                                                            'bg-green-50': request.status === 'Closed Request',
+                                                            'bg-orange-50': request.status === 'Pending approval',
+                                                            'bg-gray-100': request.status === 'Pending with Presales',
+                                                            'bg-gray-200': request.status === 'in_progress'
+                                                        }">
+                                                        <td class="p-3 font-medium" x-text="request.custom_id || 'REQ-' + request.id"></td>
+                                                        <td class="p-3">
+                                                            <a href="#" @click.prevent="openEditModal(request)" 
+                                                               class="text-blue-600 hover:text-blue-800 hover:underline"
+                                                               x-text="request.customer_name"></a>
+                                                        </td>
+                                                        <td class="p-3 max-w-xs truncate" x-text="request.description" :title="request.description"></td>
+                                                        <td class="p-3" x-text="request.service_type || request.project_type"></td>
+                                                        <td class="p-3" x-text="request.boq_cost ? '₦' + parseFloat(request.boq_cost).toLocaleString() : '-'"></td>
+                                                        <td class="p-3" x-text="request.requester_name"></td>
+                                                        <td class="p-3" x-text="request.date_request_received"></td>
+                                                        <td class="p-3" x-text="request.target_days ? request.target_days + ' days' : '-'"></td>
+                                                        <td class="p-3" x-text="request.sent_out_date || '-'"></td>
+                                                        <td class="p-3"
+                                                            :class="request.target_days && request.duration_days > request.target_days ? '!bg-red-100 !text-red-800' : ''">
+                                                            <span x-text="request.duration_days + ' days'"></span>
+                                                        </td>
+                                                        <td class="p-3" x-text="request.team_member_involved"></td>
+                                                        <td class="p-3 max-w-xs truncate" x-text="request.comment || '-'" :title="request.comment"></td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                        <div x-show="!reportData.daily?.requests?.length" class="text-center py-8 text-gray-500">
+                                            <i class="fas fa-inbox text-4xl mb-4"></i>
+                                            <p>No requests found for this date.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Activities Section -->
+                                <div class="bg-white rounded-lg border mt-6">
+                                    <div class="px-6 py-4 border-b">
+                                        <h3 class="text-lg font-semibold text-gray-900">Today's Activities</h3>
+                                    </div>
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full">
+                                            <thead class="bg-gray-50">
+                                                <tr>
+                                                    <th class="text-left p-4 font-medium text-gray-700">Time</th>
+                                                    <th class="text-left p-4 font-medium text-gray-700">Action</th>
+                                                    <th class="text-left p-4 font-medium text-gray-700">Customer</th>
+                                                    <th class="text-left p-4 font-medium text-gray-700">User</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <template x-for="activity in reportData.daily?.activities || []" :key="activity.id">
+                                                    <tr class="border-b hover:bg-gray-50">
+                                                        <td class="p-4 text-sm text-gray-600" x-text="formatTime(activity.timestamp)"></td>
+                                                        <td class="p-4 text-sm text-gray-900" x-text="activity.action"></td>
+                                                        <td class="p-4 text-sm text-blue-600">
+                                                            <a href="#" @click.prevent="viewRequestById(activity.request_id)" 
+                                                               class="hover:underline" x-text="activity.customer_name"></a>
+                                                        </td>
+                                                        <td class="p-4 text-sm text-gray-600" x-text="activity.user_name"></td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                        <div x-show="!reportData.daily?.activities?.length" class="text-center py-8 text-gray-500">
+                                            <i class="fas fa-inbox text-4xl mb-4"></i>
+                                            <p>No activity recorded for this date.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Weekly Report -->
+                            <div x-show="activeTab === 'weekly' && !loading">
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                                    <!-- Weekly Metrics -->
+                                    <div class="bg-blue-50 rounded-lg p-6">
+                                        <div class="flex items-center">
+                                            <div class="p-2 bg-blue-100 rounded-lg">
+                                                <i class="fas fa-plus text-blue-600"></i>
+                                            </div>
+                                            <div class="ml-4">
+                                                <p class="text-sm font-medium text-gray-600">Created This Week</p>
+                                                <p class="text-2xl font-bold text-gray-900" x-text="reportData.weekly?.created || 0"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bg-green-50 rounded-lg p-6">
+                                        <div class="flex items-center">
+                                            <div class="p-2 bg-green-100 rounded-lg">
+                                                <i class="fas fa-check text-green-600"></i>
+                                            </div>
+                                            <div class="ml-4">
+                                                <p class="text-sm font-medium text-gray-600">Completed This Week</p>
+                                                <p class="text-2xl font-bold text-gray-900" x-text="reportData.weekly?.completed || 0"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bg-yellow-50 rounded-lg p-6">
+                                        <div class="flex items-center">
+                                            <div class="p-2 bg-yellow-100 rounded-lg">
+                                                <i class="fas fa-clock text-yellow-600"></i>
+                                            </div>
+                                            <div class="ml-4">
+                                                <p class="text-sm font-medium text-gray-600">In Progress</p>
+                                                <p class="text-2xl font-bold text-gray-900" x-text="reportData.weekly?.in_progress || 0"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bg-red-50 rounded-lg p-6">
+                                        <div class="flex items-center">
+                                            <div class="p-2 bg-red-100 rounded-lg">
+                                                <i class="fas fa-exclamation-triangle text-red-600"></i>
+                                            </div>
+                                            <div class="ml-4">
+                                                <p class="text-sm font-medium text-gray-600">Overdue</p>
+                                                <p class="text-2xl font-bold text-gray-900" x-text="reportData.weekly?.overdue || 0"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Weekly Details Table -->
+                                <div class="bg-white rounded-lg border">
+                                    <div class="px-6 py-4 border-b">
+                                        <h3 class="text-lg font-semibold text-gray-900">Weekly Report Details</h3>
+                                    </div>
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full text-sm">
+                                            <thead class="bg-gray-50">
+                                                <tr>
+                                                    <th class="text-left p-3 font-medium text-gray-700">S/N</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Customer</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Description</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Service Type</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">BOQ Cost</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">BM</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Date Received</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Target</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Sent Out</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Duration</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Team Member</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Comment</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <template x-for="(request, index) in reportData.weekly?.requests || []" :key="request.id">
+                                                    <tr class="border-b hover:bg-gray-50"
+                                                        :class="{
+                                                            'bg-green-50': request.status === 'Closed Request',
+                                                            'bg-orange-50': request.status === 'Pending approval',
+                                                            'bg-gray-100': request.status === 'Pending with Presales',
+                                                            'bg-gray-200': request.status === 'in_progress'
+                                                        }">
+                                                        <td class="p-3 font-medium" x-text="request.custom_id || 'REQ-' + request.id"></td>
+                                                        <td class="p-3">
+                                                            <a href="#" @click.prevent="openEditModal(request)" 
+                                                               class="text-blue-600 hover:text-blue-800 hover:underline"
+                                                               x-text="request.customer_name"></a>
+                                                        </td>
+                                                        <td class="p-3 max-w-xs truncate" x-text="request.description" :title="request.description"></td>
+                                                        <td class="p-3" x-text="request.service_type || request.project_type"></td>
+                                                        <td class="p-3" x-text="request.boq_cost ? '₦' + parseFloat(request.boq_cost).toLocaleString() : '-'"></td>
+                                                        <td class="p-3" x-text="request.requester_name"></td>
+                                                        <td class="p-3" x-text="request.date_request_received"></td>
+                                                        <td class="p-3" x-text="request.target_days ? request.target_days + ' days' : '-'"></td>
+                                                        <td class="p-3" x-text="request.sent_out_date || '-'"></td>
+                                                        <td class="p-3"
+                                                            :class="request.target_days && request.duration_days > request.target_days ? '!bg-red-100 !text-red-800' : ''">
+                                                            <span x-text="request.duration_days + ' days'"></span>
+                                                        </td>
+                                                        <td class="p-3" x-text="request.team_member_involved"></td>
+                                                        <td class="p-3 max-w-xs truncate" x-text="request.comment || '-'" :title="request.comment"></td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                        <div x-show="!reportData.weekly?.requests?.length" class="text-center py-8 text-gray-500">
+                                            <i class="fas fa-inbox text-4xl mb-4"></i>
+                                            <p>No requests found for this week.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Weekly Activities -->
+                                <div class="bg-white rounded-lg border mt-6">
+                                    <div class="px-6 py-4 border-b">
+                                        <h3 class="text-lg font-semibold text-gray-900">This Week's Activities</h3>
+                                    </div>
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full">
+                                            <thead class="bg-gray-50">
+                                                <tr>
+                                                    <th class="text-left p-4 font-medium text-gray-700">Date</th>
+                                                    <th class="text-left p-4 font-medium text-gray-700">Action</th>
+                                                    <th class="text-left p-4 font-medium text-gray-700">Customer</th>
+                                                    <th class="text-left p-4 font-medium text-gray-700">User</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <template x-for="activity in reportData.weekly?.activities || []" :key="activity.id">
+                                                    <tr class="border-b hover:bg-gray-50">
+                                                        <td class="p-4 text-sm text-gray-600" x-text="formatDate(activity.timestamp)"></td>
+                                                        <td class="p-4 text-sm text-gray-900" x-text="activity.action"></td>
+                                                        <td class="p-4 text-sm text-blue-600">
+                                                            <a href="#" @click.prevent="viewRequestById(activity.request_id)" 
+                                                               class="hover:underline" x-text="activity.customer_name"></a>
+                                                        </td>
+                                                        <td class="p-4 text-sm text-gray-600" x-text="activity.user_name"></td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                        <div x-show="!reportData.weekly?.activities?.length" class="text-center py-8 text-gray-500">
+                                            <i class="fas fa-inbox text-4xl mb-4"></i>
+                                            <p>No activity recorded for this week.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Monthly Report -->
+                            <div x-show="activeTab === 'monthly' && !loading">
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                                    <!-- Monthly Metrics -->
+                                    <div class="bg-blue-50 rounded-lg p-6">
+                                        <div class="flex items-center">
+                                            <div class="p-2 bg-blue-100 rounded-lg">
+                                                <i class="fas fa-plus text-blue-600"></i>
+                                            </div>
+                                            <div class="ml-4">
+                                                <p class="text-sm font-medium text-gray-600">Created This Month</p>
+                                                <p class="text-2xl font-bold text-gray-900" x-text="reportData.monthly?.created || 0"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bg-green-50 rounded-lg p-6">
+                                        <div class="flex items-center">
+                                            <div class="p-2 bg-green-100 rounded-lg">
+                                                <i class="fas fa-check text-green-600"></i>
+                                            </div>
+                                            <div class="ml-4">
+                                                <p class="text-sm font-medium text-gray-600">Completed This Month</p>
+                                                <p class="text-2xl font-bold text-gray-900" x-text="reportData.monthly?.completed || 0"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bg-yellow-50 rounded-lg p-6">
+                                        <div class="flex items-center">
+                                            <div class="p-2 bg-yellow-100 rounded-lg">
+                                                <i class="fas fa-clock text-yellow-600"></i>
+                                            </div>
+                                            <div class="ml-4">
+                                                <p class="text-sm font-medium text-gray-600">In Progress</p>
+                                                <p class="text-2xl font-bold text-gray-900" x-text="reportData.monthly?.in_progress || 0"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bg-red-50 rounded-lg p-6">
+                                        <div class="flex items-center">
+                                            <div class="p-2 bg-red-100 rounded-lg">
+                                                <i class="fas fa-exclamation-triangle text-red-600"></i>
+                                            </div>
+                                            <div class="ml-4">
+                                                <p class="text-sm font-medium text-gray-600">Overdue</p>
+                                                <p class="text-2xl font-bold text-gray-900" x-text="reportData.monthly?.overdue || 0"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Monthly Details Table -->
+                                <div class="bg-white rounded-lg border">
+                                    <div class="px-6 py-4 border-b">
+                                        <h3 class="text-lg font-semibold text-gray-900">Monthly Report Details</h3>
+                                    </div>
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full text-sm">
+                                            <thead class="bg-gray-50">
+                                                <tr>
+                                                    <th class="text-left p-3 font-medium text-gray-700">S/N</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Customer</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Description</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Service Type</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">BOQ Cost</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">BM</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Date Received</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Target</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Sent Out</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Duration</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Team Member</th>
+                                                    <th class="text-left p-3 font-medium text-gray-700">Comment</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <template x-for="(request, index) in reportData.monthly?.requests || []" :key="request.id">
+                                                    <tr class="border-b hover:bg-gray-50"
+                                                        :class="{
+                                                            'bg-green-50': request.status === 'Closed Request',
+                                                            'bg-orange-50': request.status === 'Pending approval',
+                                                            'bg-gray-100': request.status === 'Pending with Presales',
+                                                            'bg-gray-200': request.status === 'in_progress'
+                                                        }">
+                                                        <td class="p-3 font-medium" x-text="request.custom_id || 'REQ-' + request.id"></td>
+                                                        <td class="p-3">
+                                                            <a href="#" @click.prevent="openEditModal(request)" 
+                                                               class="text-blue-600 hover:text-blue-800 hover:underline"
+                                                               x-text="request.customer_name"></a>
+                                                        </td>
+                                                        <td class="p-3 max-w-xs truncate" x-text="request.description" :title="request.description"></td>
+                                                        <td class="p-3" x-text="request.service_type || request.project_type"></td>
+                                                        <td class="p-3" x-text="request.boq_cost ? '₦' + parseFloat(request.boq_cost).toLocaleString() : '-'"></td>
+                                                        <td class="p-3" x-text="request.requester_name"></td>
+                                                        <td class="p-3" x-text="request.date_request_received"></td>
+                                                        <td class="p-3" x-text="request.target_days ? request.target_days + ' days' : '-'"></td>
+                                                        <td class="p-3" x-text="request.sent_out_date || '-'"></td>
+                                                        <td class="p-3"
+                                                            :class="request.target_days && request.duration_days > request.target_days ? '!bg-red-100 !text-red-800' : ''">
+                                                            <span x-text="request.duration_days + ' days'"></span>
+                                                        </td>
+                                                        <td class="p-3" x-text="request.team_member_involved"></td>
+                                                        <td class="p-3 max-w-xs truncate" x-text="request.comment || '-'" :title="request.comment"></td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                        <div x-show="!reportData.monthly?.requests?.length" class="text-center py-8 text-gray-500">
+                                            <i class="fas fa-inbox text-4xl mb-4"></i>
+                                            <p>No requests found for this month.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Monthly Activities -->
+                                <div class="bg-white rounded-lg border mt-6">
+                                    <div class="px-6 py-4 border-b">
+                                        <h3 class="text-lg font-semibold text-gray-900">This Month's Activities</h3>
+                                    </div>
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full">
+                                            <thead class="bg-gray-50">
+                                                <tr>
+                                                    <th class="text-left p-4 font-medium text-gray-700">Date</th>
+                                                    <th class="text-left p-4 font-medium text-gray-700">Action</th>
+                                                    <th class="text-left p-4 font-medium text-gray-700">Customer</th>
+                                                    <th class="text-left p-4 font-medium text-gray-700">User</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <template x-for="activity in reportData.monthly?.activities || []" :key="activity.id">
+                                                    <tr class="border-b hover:bg-gray-50">
+                                                        <td class="p-4 text-sm text-gray-600" x-text="formatDate(activity.timestamp)"></td>
+                                                        <td class="p-4 text-sm text-gray-900" x-text="activity.action"></td>
+                                                        <td class="p-4 text-sm text-blue-600">
+                                                            <a href="#" @click.prevent="viewRequestById(activity.request_id)" 
+                                                               class="hover:underline" x-text="activity.customer_name"></a>
+                                                        </td>
+                                                        <td class="p-4 text-sm text-gray-600" x-text="activity.user_name"></td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                        <div x-show="!reportData.monthly?.activities?.length" class="text-center py-8 text-gray-500">
+                                            <i class="fas fa-inbox text-4xl mb-4"></i>
+                                            <p>No activity recorded for this month.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function reportsApp() {
+            return {
+                sidebarOpen: true,
+                activeTab: 'daily',
+                loading: false,
+                selectedDate: new Date().toISOString().split('T')[0],
+                selectedWeek: '',
+                selectedMonth: new Date().toISOString().slice(0, 7),
+                reportData: {},
+
+                async init() {
+                    // Set current week
+                    const today = new Date();
+                    const firstDayOfYear = new Date(today.getFullYear(), 0, 1);
+                    const pastDaysOfYear = (today - firstDayOfYear) / 86400000;
+                    const weekNumber = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+                    this.selectedWeek = `${today.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
+                    
+                    await this.loadReportData();
+                },
+
+                async loadReportData() {
+                    this.loading = true;
+                    try {
+                        let endpoint = '';
+                        let params = new URLSearchParams();
+
+                        if (this.activeTab === 'daily') {
+                            endpoint = '/api/reports/daily';
+                            params.append('date', this.selectedDate);
+                        } else if (this.activeTab === 'weekly') {
+                            endpoint = '/api/reports/weekly';
+                            params.append('week', this.selectedWeek);
+                        } else if (this.activeTab === 'monthly') {
+                            endpoint = '/api/reports/monthly';
+                            params.append('month', this.selectedMonth);
+                        }
+
+                        const response = await fetch(`${endpoint}?${params}`);
+                        const data = await response.json();
+                        this.reportData[this.activeTab] = data;
+                    } catch (error) {
+                        console.error('Error loading report data:', error);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                formatTime(timestamp) {
+                    return new Date(timestamp).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                },
+
+                formatDate(timestamp) {
+                    return new Date(timestamp).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                },
+
+                openEditModal(request) {
+                    // For now, just show an alert. This would normally open an edit modal
+                    alert(`Edit request for: ${request.customer_name}`);
+                },
+
+                viewRequestById(requestId) {
+                    // For now, just show an alert. This would normally navigate to the request
+                    alert(`View request ID: ${requestId}`);
+                },
+
+                exportReport(format) {
+                    let endpoint = '';
+                    let params = new URLSearchParams();
+                    
+                    // Build endpoint and parameters based on active tab
+                    if (this.activeTab === 'daily') {
+                        endpoint = `/api/reports/daily/export/${format}`;
+                        params.append('date', this.selectedDate);
+                    } else if (this.activeTab === 'weekly') {
+                        endpoint = `/api/reports/weekly/export/${format}`;
+                        params.append('week', this.selectedWeek);
+                    } else if (this.activeTab === 'monthly') {
+                        endpoint = `/api/reports/monthly/export/${format}`;
+                        params.append('month', this.selectedMonth);
+                    }
+                    
+                    // Create download link
+                    const url = `${endpoint}?${params.toString()}`;
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

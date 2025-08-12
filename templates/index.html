@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div x-data="app()" class="flex min-h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 bg-white shadow-lg" :class="{ 'hidden': !sidebarOpen }" id="sidebar">
+            <div class="p-4 border-b">
+                <div class="flex items-center gap-2">
+                    <img src="/static/images/Galaxy-New-Logo-scaled.png" alt="Galaxy Backbone" class="h-10 w-auto">
+                    <span class="font-semibold text-gray-800">Request Management System</span>
+                </div>
+            </div>
+            <nav class="p-4">
+                <div class="space-y-2">
+                    <div class="px-3 py-2 text-sm text-gray-600 border-b mb-2">
+                        Welcome, {{ session.full_name }}
+                    </div>
+                    <a href="/" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-blue-50 text-blue-700">
+                        <i class="fas fa-home w-5"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="/add-request" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700">
+                        <i class="fas fa-plus w-5"></i>
+                        <span>Add Request</span>
+                    </a>
+                    <a href="/requests" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700">
+                        <i class="fas fa-table w-5"></i>
+                        <span>Requests Table</span>
+                    </a>
+                    <a href="/reports" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700">
+                        <i class="fas fa-chart-bar w-5"></i>
+                        <span>Reports</span>
+                    </a>
+                    <a href="/logout" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700 mt-4 border-t pt-4">
+                        <i class="fas fa-sign-out-alt w-5"></i>
+                        <span>Logout</span>
+                    </a>
+                </div>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1">
+            <!-- Header -->
+            <div class="bg-white shadow-sm border-b px-6 py-4">
+                <div class="flex items-center gap-4">
+                    <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden">
+                        <i class="fas fa-bars text-gray-600"></i>
+                    </button>
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
+                        <p class="text-gray-600">Welcome back! Here's your system overview.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Content -->
+            <div class="p-6 space-y-6">
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white rounded-xl shadow-sm border p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-medium text-gray-600">Total Requests</h3>
+                            <i class="fas fa-file-text text-blue-600"></i>
+                        </div>
+                        <div class="text-2xl font-bold text-blue-600" x-text="stats.total"></div>
+                        <p class="text-xs text-gray-500 mt-1">
+                            <i class="fas fa-trending-up mr-1"></i>
+                            Total requests
+                        </p>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-medium text-gray-600">In Progress</h3>
+                            <i class="fas fa-clock text-yellow-600"></i>
+                        </div>
+                        <div class="text-2xl font-bold text-yellow-600" x-text="stats.in_progress"></div>
+                        <p class="text-xs text-gray-500 mt-1">
+                            <i class="fas fa-clock mr-1"></i>
+                            Currently active
+                        </p>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-medium text-gray-600">Closed This Week</h3>
+                            <i class="fas fa-check-circle text-green-600"></i>
+                        </div>
+                        <div class="text-2xl font-bold text-green-600" x-text="stats.closed_week"></div>
+                        <p class="text-xs text-gray-500 mt-1">
+                            <i class="fas fa-calendar mr-1"></i>
+                            This week
+                        </p>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-medium text-gray-600">Overdue</h3>
+                            <i class="fas fa-exclamation-triangle text-red-600"></i>
+                        </div>
+                        <div class="text-2xl font-bold text-red-600" x-text="stats.overdue"></div>
+                        <p class="text-xs text-gray-500 mt-1">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                            Needs attention
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="bg-white rounded-xl shadow-sm border">
+                    <div class="p-6 border-b">
+                        <h2 class="text-xl font-semibold text-gray-900">Recent Activity</h2>
+                        <p class="text-gray-600">Latest 10 requests in the system</p>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="text-left p-4 font-medium text-gray-700">Client</th>
+                                    <th class="text-left p-4 font-medium text-gray-700">Type</th>
+                                    <th class="text-left p-4 font-medium text-gray-700">Status</th>
+                                    <th class="text-left p-4 font-medium text-gray-700">Assigned</th>
+                                    <th class="text-left p-4 font-medium text-gray-700">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-activity">
+                                <template x-for="request in recentRequests" :key="request.id">
+                                    <tr class="border-b hover:bg-gray-50">
+                                        <td class="p-4 font-medium" x-text="request.customer_name"></td>
+                                        <td class="p-4 text-gray-600" x-text="request.service_type || request.project_type"></td>
+                                        <td class="p-4">
+                                            <span :class="getStatusClass(request.status)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" x-text="getStatusText(request.status)"></span>
+                                        </td>
+                                        <td class="p-4" x-text="request.team_member_involved"></td>
+                                        <td class="p-4 text-gray-600" x-text="formatDate(request.date_request_received)"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div x-show="showToast"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 transform translate-y-2"
+         x-transition:enter-end="opacity-100 transform translate-y-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 transform translate-y-0"
+         x-transition:leave-end="opacity-0 transform translate-y-2"
+         class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+        <span x-text="toastMessage"></span>
+    </div>
+
+    <script>
+        function app() {
+            return {
+                sidebarOpen: true,
+                showToast: false,
+                toastMessage: '',
+                stats: {
+                    total: 0,
+                    in_progress: 0,
+                    pending: 0,
+                    closed: 0,
+                    overdue: 0,
+                    closed_week: 0
+                },
+                recentRequests: [],
+
+                async init() {
+                    await this.loadStats();
+                    await this.loadRecentRequests();
+                    // Auto-refresh every 30 seconds
+                    setInterval(async () => {
+                        await this.loadStats();
+                        await this.loadRecentRequests();
+                    }, 30000);
+                },
+
+                async loadStats() {
+                    try {
+                        const response = await fetch('/api/dashboard/stats');
+                        this.stats = await response.json();
+                    } catch (error) {
+                        console.error('Error loading stats:', error);
+                    }
+                },
+
+                async loadRecentRequests() {
+                    try {
+                        const response = await fetch('/api/requests');
+                        const requests = await response.json();
+                        // Get the 10 most recent requests
+                        this.recentRequests = requests.slice(0, 10);
+                    } catch (error) {
+                        console.error('Error loading recent requests:', error);
+                    }
+                },
+
+                getStatusClass(status) {
+                    switch(status) {
+                        case 'in_progress': return 'bg-yellow-100 text-yellow-800';
+                        case 'Pending with Presales': return 'bg-blue-100 text-blue-800';
+                        case 'Pending review': return 'bg-purple-100 text-purple-800';
+                        case 'Pending approval': return 'bg-orange-100 text-orange-800';
+                        case 'Closed Request': return 'bg-green-100 text-green-800';
+                        default: return 'bg-gray-100 text-gray-800';
+                    }
+                },
+
+                getStatusText(status) {
+                    switch(status) {
+                        case 'in_progress': return '🟡 In Progress';
+                        case 'Pending with Presales': return '🔵 Pending Presales';
+                        case 'Pending review': return '🟣 Pending Review';
+                        case 'Pending approval': return '🟠 Pending Approval';
+                        case 'Closed Request': return '🟢 Closed';
+                        default: return status;
+                    }
+                },
+
+                formatDate(dateString) {
+                    if (!dateString) return '';
+                    return new Date(dateString).toLocaleDateString();
+                },
+
+                showToastMessage(message) {
+                    this.toastMessage = message;
+                    this.showToast = true;
+                    setTimeout(() => {
+                        this.showToast = false;
+                    }, 3000);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Request - Request Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Fix dropdown black flash */
+        select {
+            background-color: white !important;
+            -webkit-appearance: menulist;
+            -moz-appearance: menulist;
+            appearance: menulist;
+        }
+        
+        select option {
+            background-color: white !important;
+            color: black !important;
+        }
+        
+        /* Ensure proper loading states */
+        select:disabled {
+            background-color: #f3f4f6 !important;
+            color: #6b7280 !important;
+            cursor: not-allowed;
+        }
+        
+        /* Alpine.js cloak to prevent flash */
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div x-data="addRequestApp()" class="flex min-h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 bg-white shadow-lg" :class="{ 'hidden': !sidebarOpen }" id="sidebar">
+            <div class="p-4 border-b">
+                <div class="flex items-center gap-2">
+                    <img src="/static/images/Galaxy-New-Logo-scaled.png" alt="Galaxy Backbone" class="h-10 w-auto">
+                    <span class="font-semibold text-gray-800">Request Management System</span>
+                </div>
+            </div>
+            <nav class="p-4">
+                <div class="space-y-2">
+                    <div class="px-3 py-2 text-sm text-gray-600 border-b mb-2">
+                        Welcome, {{ session.full_name }}
+                    </div>
+                    <a href="/" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700">
+                        <i class="fas fa-home w-5"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="/add-request" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-blue-50 text-blue-700">
+                        <i class="fas fa-plus w-5"></i>
+                        <span>Add Request</span>
+                    </a>
+                    <a href="/requests" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700">
+                        <i class="fas fa-table w-5"></i>
+                        <span>Requests Table</span>
+                    </a>
+                    <a href="/reports" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700">
+                        <i class="fas fa-chart-bar w-5"></i>
+                        <span>Reports</span>
+                    </a>
+                    <a href="/logout" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700 mt-4 border-t pt-4">
+                        <i class="fas fa-sign-out-alt w-5"></i>
+                        <span>Logout</span>
+                    </a>
+                </div>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1">
+            <!-- Header -->
+            <div class="bg-white shadow-sm border-b px-6 py-4">
+                <div class="flex items-center gap-4">
+                    <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden">
+                        <i class="fas fa-bars text-gray-600"></i>
+                    </button>
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900">Add New Request</h1>
+                        <p class="text-gray-600">Create a new sales request for your team.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Content -->
+            <div class="p-6">
+                <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-sm border">
+                    <div class="p-6">
+                        <form @submit.prevent="submitRequest">
+                            <!-- Customer Name -->
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Customer Name <span class="text-red-500">*</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    x-model="form.customer_name"
+                                    required
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Enter customer name"
+                                >
+                            </div>
+
+                            <!-- Description -->
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Description <span class="text-red-500">*</span>
+                                </label>
+                                <textarea 
+                                    x-model="form.description"
+                                    required
+                                    rows="3"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Describe the request in detail..."
+                                ></textarea>
+                            </div>
+
+                            <!-- Service Type -->
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Service Type <span class="text-red-500">*</span>
+                                </label>
+                                <select 
+                                    x-model="form.service_type"
+                                    x-cloak
+                                    required
+                                    :disabled="serviceTypes.length === 0"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                                    style="background-color: white;"
+                                >
+                                    <option value="" x-text="serviceTypes.length === 0 ? 'Loading service types...' : 'Select service type'"></option>
+                                    <template x-for="serviceType in serviceTypes" :key="serviceType">
+                                        <option :value="serviceType" x-text="serviceType"></option>
+                                    </template>
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">This will determine the custom ID format</p>
+                            </div>
+
+                            <!-- Project Type (Legacy - Optional) -->
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Project Type (Legacy)
+                                </label>
+                                <select 
+                                    x-model="form.project_type"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    <option value="">Select project type (optional)</option>
+                                    <option value="Cloud Service">Cloud Service</option>
+                                    <option value="Connectivity (New & Upgrade)">Connectivity (New & Upgrade)</option>
+                                    <option value="Multiple Services">Multiple Services</option>
+                                    <option value="Data Center Set Up">Data Center Set Up</option>
+                                    <option value="Security">Security</option>
+                                    <option value="Service Relocation">Service Relocation</option>
+                                    <option value="Colocation">Colocation</option>
+                                    <option value="IP Address">IP Address</option>
+                                    <option value="Review">Review</option>
+                                    <option value="Power System">Power System</option>
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">Legacy field - kept for backward compatibility</p>
+                            </div>
+
+                            <!-- BOQ Cost -->
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    BOQ Cost (₦)
+                                </label>
+                                
+                                <!-- Radio Button Selection -->
+                                <div class="flex gap-6 mb-3">
+                                    <div class="flex items-center">
+                                        <input 
+                                            type="radio" 
+                                            id="boq_amount" 
+                                            value="amount"
+                                            x-model="boq_cost_type"
+                                            class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2"
+                                        >
+                                        <label for="boq_amount" class="ml-2 text-sm font-medium text-gray-700">Amount</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input 
+                                            type="radio" 
+                                            id="boq_hld" 
+                                            value="hld"
+                                            x-model="boq_cost_type"
+                                            class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2"
+                                        >
+                                        <label for="boq_hld" class="ml-2 text-sm font-medium text-gray-700">HLD (High Level Design)</label>
+                                    </div>
+                                </div>
+                                
+                                <!-- Conditional Input Field -->
+                                <div x-show="boq_cost_type === 'amount'"
+                                     x-transition:enter="transition ease-out duration-200"
+                                     x-transition:enter-start="opacity-0 transform scale-95"
+                                     x-transition:enter-end="opacity-100 transform scale-100"
+                                     x-transition:leave="transition ease-in duration-150"
+                                     x-transition:leave-start="opacity-100 transform scale-100"
+                                     x-transition:leave-end="opacity-0 transform scale-95">
+                                    <input 
+                                        type="number" 
+                                        step="0.01"
+                                        x-model="form.boq_cost"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="Enter cost amount in Naira (optional)"
+                                    >
+                                </div>
+                                
+                                <!-- HLD Display -->
+                                <div x-show="boq_cost_type === 'hld'"
+                                     x-transition:enter="transition ease-out duration-200"
+                                     x-transition:enter-start="opacity-0 transform scale-95"
+                                     x-transition:enter-end="opacity-100 transform scale-100"
+                                     x-transition:leave="transition ease-in duration-150"
+                                     x-transition:leave-start="opacity-100 transform scale-100"
+                                     x-transition:leave-end="opacity-0 transform scale-95">
+                                    <div class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-blue-50 text-blue-800">
+                                        <i class="fas fa-clipboard-list mr-2"></i>
+                                        <span class="font-medium">HLD (High Level Design)</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- BM Name with Autocomplete -->
+                            <div class="mb-6 relative" x-data="{ open: false }">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    BM (Name) <span class="text-red-500">*</span>
+                                </label>
+                                <div class="relative">
+                                    <input 
+                                        type="text" 
+                                        x-model="requesterQuery"
+                                        @input="handleRequesterInput(); showRequesterDropdown = true; open = true"
+                                        @focus="showRequesterDropdown = true; open = true"
+                                        @click.away="showRequesterDropdown = false; open = false"
+                                        required
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        :placeholder="isOthersSelected ? 'Enter custom BM name...' : 'Type to search for BM...'"
+                                        autocomplete="off"
+                                    >
+                                    <i :class="isOthersSelected ? 'fas fa-edit' : 'fas fa-search'" class="absolute right-3 top-3 text-gray-400"></i>
+                                </div>
+                                
+                                <!-- Dropdown -->
+                                <div x-show="showRequesterDropdown && open && filteredRequesters.length > 0 && !isOthersSelected"
+                                     x-transition:enter="transition ease-out duration-100"
+                                     x-transition:enter-start="transform opacity-0 scale-95"
+                                     x-transition:enter-end="transform opacity-100 scale-100"
+                                     x-transition:leave="transition ease-in duration-75"
+                                     x-transition:leave-start="transform opacity-100 scale-100"
+                                     x-transition:leave-end="transform opacity-0 scale-95"
+                                     class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                    <template x-for="requester in filteredRequesters" :key="requester.name">
+                                        <div @click="selectRequester(requester)"
+                                             class="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0">
+                                            <div class="font-medium text-gray-900" x-text="requester.name"></div>
+                                            <div class="text-sm text-gray-600" x-text="requester.department"></div>
+                                        </div>
+                                    </template>
+                                </div>
+                                
+                                <p class="text-xs text-gray-500 mt-1" x-text="isOthersSelected ? 'Enter custom BM name' : 'Type to search or select Others for custom entry'"></p>
+                            </div>
+
+                            <!-- Department (Auto-filled) -->
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Dept. <span class="text-red-500">*</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    x-model="form.department"
+                                    readonly
+                                    required
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                                    placeholder="Department will be auto-filled"
+                                >
+                                <p class="text-xs text-gray-500 mt-1">Department is automatically filled when you select a BM</p>
+                            </div>
+
+                            <!-- Date Request Received -->
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Date Request Received <span class="text-red-500">*</span>
+                                </label>
+                                <input 
+                                    type="date" 
+                                    x-model="form.date_request_received"
+                                    required
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                <p class="text-xs text-gray-500 mt-1">Pre-filled with today's date, but can be edited</p>
+                            </div>
+
+                            <!-- Target Working Days -->
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Target (Working Days)
+                                </label>
+                                <input 
+                                    type="number" 
+                                    x-model="form.target_days"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Number of working days target"
+                                >
+                            </div>
+
+                            <!-- Team Member Involved -->
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Team Member Involved *
+                                </label>
+                                <select 
+                                    id="teamMemberSelect"
+                                    x-model="form.team_member_involved"
+                                    x-cloak
+                                    :disabled="users.length === 0"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                                    style="background-color: white;"
+                                    required
+                                >
+                                    <option value="" x-text="users.length === 0 ? 'Loading team members...' : 'Select a team member'"></option>
+                                    <template x-for="user in users" :key="user.id">
+                                        <option :value="user.full_name" x-text="user.full_name"></option>
+                                    </template>
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">Select the team member responsible for this request</p>
+                            </div>
+
+                            <!-- Comment -->
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Comment
+                                </label>
+                                <textarea 
+                                    x-model="form.comment"
+                                    rows="2"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Any additional comments..."
+                                ></textarea>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="flex gap-3">
+                                <button 
+                                    type="submit"
+                                    :disabled="loading"
+                                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <i class="fas fa-plus mr-2"></i>
+                                    <span x-text="loading ? 'Creating...' : 'Create Request'"></span>
+                                </button>
+                                <button 
+                                    type="button"
+                                    @click="resetForm"
+                                    class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                                >
+                                    <i class="fas fa-undo mr-2"></i>
+                                    Reset
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div x-show="showToast"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 transform translate-y-2"
+         x-transition:enter-end="opacity-100 transform translate-y-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 transform translate-y-0"
+         x-transition:leave-end="opacity-0 transform translate-y-2"
+         class="fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50"
+         :class="toastType === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'">
+        <span x-text="toastMessage"></span>
+    </div>
+
+    <script>
+        function addRequestApp() {
+            return {
+                sidebarOpen: true,
+                loading: false,
+                showToast: false,
+                toastMessage: '',
+                toastType: 'success',
+                requesterQuery: '',
+                showRequesterDropdown: false,
+                selectedRequester: null,
+                boq_cost_type: 'amount', // Default to amount
+                users: [], // List of all users for team member selection
+                serviceTypes: [], // List of available service types
+                isOthersSelected: false,
+                requesters: [
+                    // RO Lagos
+                    { name: 'Olabisi Ibikunle', department: 'RO Lagos' },
+                    { name: 'Victor Imonieroh', department: 'RO Lagos' },
+                    { name: 'Olaoluwa Adenuga', department: 'RO Lagos' },
+                    // RO Kano
+                    { name: 'Firdausi Danzomo', department: 'RO Kano' },
+                    { name: 'Hauwa Abubakar', department: 'RO Kano' },
+                    { name: 'Abdussalam Dandawaki', department: 'RO Kano' },
+                    { name: 'Abubakar Tanimu', department: 'RO Kano' },
+                    { name: 'Fauziya Yerima', department: 'RO Kano' },
+                    { name: 'Abubakar Usman', department: 'RO Kano' },
+                    // RO Enugu
+                    { name: 'Henry Akubue', department: 'RO Enugu' },
+                    { name: 'Vincent Nwan Kwo', department: 'RO Enugu' },
+                    { name: 'Obinna Oweke', department: 'RO Enugu' },
+                    // RO Gombe
+                    { name: 'Ibrahim Bello', department: 'RO Gombe' },
+                    { name: 'Fatsuma Yarima', department: 'RO Gombe' },
+                    { name: 'Muhammad Usman', department: 'RO Gombe' },
+                    // PSS
+                    { name: 'Chike Okoye', department: 'PSS' },
+                    { name: 'Mildred Agu', department: 'PSS' },
+                    { name: "Sa'adiya Yusuf", department: 'PSS' },
+                    { name: 'Usman Nahuche', department: 'PSS' },
+                    { name: 'Fatima Amin', department: 'PSS' },
+                    { name: 'Muhammed Faruk', department: 'PSS' },
+                    { name: 'Akeem Adebowale', department: 'PSS' },
+                    { name: 'Jonathan Ohomina', department: 'PSS' },
+                    { name: 'Usman Ahmed', department: 'PSS' },
+                    { name: 'Yetunde Ejuetamni', department: 'PSS' },
+                    // EPSS
+                    { name: 'Maryam Magaji', department: 'EPSS' },
+                    { name: 'Mansur Umar', department: 'EPSS' },
+                    { name: 'Eleke Ajala', department: 'EPSS' },
+                    { name: 'Ngozi Okoli', department: 'EPSS' },
+                    { name: 'Isihaka Yayale', department: 'EPSS' },
+                    { name: 'Cyprian Cornelius', department: 'EPSS' },
+                    // CSS
+                    { name: 'Hauwa Sidi', department: 'CSS' },
+                    { name: 'Fatima Elsudi', department: 'CSS' },
+                    { name: 'Zubairu Ibrahim', department: 'CSS' },
+                    // Others
+                    { name: 'Others', department: 'Others' }
+                ],
+                form: {
+                    customer_name: '',
+                    description: '',
+                    service_type: '',
+                    project_type: '',
+                    boq_cost: '',
+                    requester_name: '',
+                    department: '',
+                    date_request_received: new Date().toISOString().split('T')[0], // Today's date
+                    target_days: '',
+                    team_member_involved: '',
+                    comment: ''
+                },
+
+                get filteredRequesters() {
+                    if (!this.requesterQuery) {
+                        return this.requesters;
+                    }
+                    return this.requesters.filter(requester =>
+                        requester.name.toLowerCase().includes(this.requesterQuery.toLowerCase())
+                    );
+                },
+
+                selectRequester(requester) {
+                    this.selectedRequester = requester;
+                    this.requesterQuery = requester.name;
+                    this.form.requester_name = requester.name;
+                    this.form.department = requester.department;
+                    this.showRequesterDropdown = false;
+                    
+                    // Check if "Others" is selected
+                    if (requester.name === 'Others') {
+                        this.isOthersSelected = true;
+                        this.requesterQuery = ''; // Clear the input for custom entry
+                        this.form.requester_name = '';
+                    } else {
+                        this.isOthersSelected = false;
+                    }
+                },
+
+                handleRequesterInput() {
+                    if (this.isOthersSelected) {
+                        // When Others is selected, use the input directly as BM name
+                        this.form.requester_name = this.requesterQuery;
+                    }
+                },
+
+                async submitRequest() {
+                    this.loading = true;
+                    
+                    // Prepare form data with BOQ cost handling
+                    const formData = {
+                        customer_name: this.form.customer_name,
+                        description: this.form.description,
+                        project_type: this.form.project_type,
+                        boq_cost: this.boq_cost_type === 'hld' ? 'HLD' : this.form.boq_cost,
+                        requester_name: this.form.requester_name,
+                        department: this.form.department,
+                        date_request_received: this.form.date_request_received,
+                        target_days: this.form.target_days,
+                        team_member_involved: this.form.team_member_involved,
+                        comment: this.form.comment
+                    };
+                    
+                    try {
+                        console.log('Sending form data:', formData);
+                        
+                        const response = await fetch('/api/requests', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(formData)
+                        });
+
+                        const result = await response.json();
+                        console.log('Response:', result);
+
+                        if (response.ok) {
+                            this.showToastMessage('Request created successfully!', 'success');
+                            this.resetForm();
+                        } else {
+                            console.error('Server error:', result);
+                            this.showToastMessage(result.error || 'Error creating request. Please try again.', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Request error:', error);
+                        this.showToastMessage('Error creating request. Please try again.', 'error');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                resetForm() {
+                    this.form = {
+                        customer_name: '',
+                        description: '',
+                        project_type: '',
+                        boq_cost: '',
+                        requester_name: '',
+                        department: '',
+                        date_request_received: new Date().toISOString().split('T')[0], // Today's date
+                        target_days: '',
+                        team_member_involved: '',
+                        comment: ''
+                    };
+                    this.requesterQuery = '';
+                    this.selectedRequester = null;
+                    this.showRequesterDropdown = false;
+                    this.boq_cost_type = 'amount'; // Reset to default
+                    this.isOthersSelected = false;
+                },
+
+                showToastMessage(message, type = 'success') {
+                    this.toastMessage = message;
+                    this.toastType = type;
+                    this.showToast = true;
+                    setTimeout(() => {
+                        this.showToast = false;
+                    }, 3000);
+                },
+
+                async loadUsers() {
+                    try {
+                        const response = await fetch('/api/users');
+                        if (response.ok) {
+                            this.users = await response.json();
+                        }
+                    } catch (error) {
+                        console.error('Error loading users:', error);
+                    }
+                },
+
+                async loadServiceTypes() {
+                    try {
+                        const response = await fetch('/api/service-types');
+                        if (response.ok) {
+                            this.serviceTypes = await response.json();
+                        }
+                    } catch (error) {
+                        console.error('Error loading service types:', error);
+                    }
+                },
+
+                init() {
+                    this.loadUsers();
+                    this.loadServiceTypes();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
